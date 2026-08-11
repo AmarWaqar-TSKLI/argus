@@ -42,6 +42,11 @@ EXPECTED = [
     ("visual", "/pricing", True),   # low-contrast refund text
     ("visual", "/about", True),     # overlapping button
 ]
+# Reachable only via --auth (login as demo/demo123 first).
+AUTH_EXPECTED = [
+    ("broken-image", "/account", False),
+    ("failed-request", "/account", False),
+]
 CONTROL_PAGE = "/blog"
 
 console = Console()
@@ -60,9 +65,13 @@ def wait_for_app(url: str, tries: int = 30) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--no-vision", action="store_true")
+    parser.add_argument("--auth", action="store_true",
+                        help="Log into the demo app first; includes auth-only bugs")
     args = parser.parse_args()
     if args.no_vision:
         config.DISABLE_VISION = True
+
+    expected = EXPECTED + (AUTH_EXPECTED if args.auth else [])
 
     app = subprocess.Popen(
         [sys.executable, str(PROJECT_ROOT / "demo_app" / "app.py")],
@@ -73,6 +82,17 @@ def main() -> int:
         wait_for_app(BASE)
         run_dir = config.RUNS_DIR / f"benchmark-{datetime.now():%Y%m%d-%H%M%S}"
         run_dir.mkdir(parents=True)
+        # Isolated baselines: the benchmark scores injected-bug detection, so
+        # visual drift vs. stale baselines from earlier local runs must not
+        # leak in. Fresh dir → every page is a first sighting → no drift noise.
+        config.BASELINE_DIR = run_dir / "baseline"
+        if args.auth:
+            import os as _os
+
+            from argus import auth as argus_auth
+            _os.environ.setdefault("ARGUS_LOGIN_USER", "demo")
+            _os.environ.setdefault("ARGUS_LOGIN_PASSWORD", "demo123")
+            argus_auth.login(f"{BASE}/login", str(run_dir))
         state = {
             "base_url": BASE, "max_pages": 10, "run_dir": str(run_dir),
             "frontier": [{"url": BASE, "found_on": "(start)"}],
@@ -88,7 +108,7 @@ def main() -> int:
 
     vision_on = config.has_vlm()
     found = {(f["type"], urlparse(f["url"]).path or "/") for f in final["findings"]}
-    applicable = [e for e in EXPECTED if vision_on or not e[2]]
+    applicable = [e for e in expected if vision_on or not e[2]]
 
     def caught(type_spec: str, path: str) -> bool:
         return any((t, path) in found for t in type_spec.split("|"))
@@ -98,7 +118,7 @@ def main() -> int:
     table.add_column("Page")
     table.add_column("Result")
     hits = 0
-    for type_, path, needs_vision in EXPECTED:
+    for type_, path, needs_vision in expected:
         if caught(type_, path):
             hits += 1
             table.add_row(type_, path, "[green]caught[/]")
@@ -109,9 +129,9 @@ def main() -> int:
 
     false_pos = [f for f in final["findings"]
                  if (urlparse(f["url"]).path or "/") == CONTROL_PAGE]
-    dom_rows = [e for e in EXPECTED if not e[2]]
+    dom_rows = [e for e in expected if not e[2]]
     dom_hits = sum(1 for t, p, _ in dom_rows if caught(t, p))
-    vision_rows = [e for e in EXPECTED if e[2]] if vision_on else []
+    vision_rows = [e for e in expected if e[2]] if vision_on else []
     vision_hits = sum(1 for t, p, _ in vision_rows if caught(t, p))
 
     recall = hits / len(applicable)

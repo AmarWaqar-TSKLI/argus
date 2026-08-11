@@ -14,5 +14,8 @@ Argus's benchmark: recall = how many of these it finds, precision = no findings 
 | 8 | /contact | fetch to /api/office-locations 404s | failed-request | DOM (Phase 1) |
 | 9 | /contact | Form submit → POST /subscribe returns 500 | flow-failure | Flows (Phase 5) |
 | 10 | /about | 'Meet the team' button does nothing when clicked | dead-button / unclickable-element | Flows (Phase 5) |
+| 11 | /account | Avatar image 404s — behind login (demo/demo123) | broken-image + failed-request | Auth audit (Phase 6, `--login`) |
 
 /blog is the clean control page — anything reported there is a false positive.
+Unauthenticated audits see /account only as a redirect to /login — bug 11 is
+reachable exclusively via `--login`, which is exactly what it exists to prove.

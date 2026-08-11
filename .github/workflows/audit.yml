@@ -33,9 +33,16 @@ jobs:
           pip install -r requirements.txt
           playwright install --with-deps chromium
 
+      - name: Unit tests
+        run: pytest -q
+
       - name: Run benchmark against injected-bug demo app
         if: ${{ inputs.url == '' }}
         run: python scripts/benchmark.py
+
+      - name: Run authenticated benchmark (login + members-only bugs)
+        if: ${{ inputs.url == '' }}
+        run: python scripts/benchmark.py --auth
 
       - name: Audit external URL
         if: ${{ inputs.url != '' }}

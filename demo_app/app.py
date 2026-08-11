@@ -3,17 +3,28 @@
 Ground truth lives in BUGS.md — Argus's recall is measured against it.
 Run: python demo_app/app.py  (serves on http://127.0.0.1:5000)
 """
-from flask import Flask
+from flask import Flask, redirect, request, session
 
 app = Flask(__name__)
+app.secret_key = "demo-app-not-a-real-secret"
 
 NAV = """<nav style="padding:12px;background:#1e293b">
   <a href="/" style="color:#fff;margin-right:16px">Home</a>
   <a href="/pricing" style="color:#fff;margin-right:16px">Pricing</a>
   <a href="/about" style="color:#fff;margin-right:16px">About</a>
   <a href="/contact" style="color:#fff;margin-right:16px">Contact</a>
-  <a href="/blog" style="color:#fff">Blog</a>
+  <a href="/blog" style="color:#fff;margin-right:16px">Blog</a>
+  <a href="/account" style="color:#fff">Account</a>
 </nav>"""
+
+LOGIN_FORM = """
+  <h1>Log in</h1>
+  <form action="/login" method="post">
+    <p><input type="text" name="username" aria-label="Username" placeholder="username"></p>
+    <p><input type="password" name="password" aria-label="Password" placeholder="password"></p>
+    <button type="submit">Log in</button>
+  </form>
+  <p style="color:#64748b">(demo / demo123)</p>"""
 
 
 def page(title: str, body: str) -> str:
@@ -85,6 +96,29 @@ def contact():
 @app.route("/subscribe", methods=["POST"])
 def subscribe():
     return "Internal Server Error", 500
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        if (request.form.get("username") == "demo"
+                and request.form.get("password") == "demo123"):
+            session["user"] = "demo"
+            return redirect("/account")
+        return page("Log in", '<p style="color:#b91c1c">Invalid credentials.</p>' + LOGIN_FORM)
+    return page("Log in", LOGIN_FORM)
+
+
+@app.route("/account")
+def account():
+    if not session.get("user"):
+        return redirect("/login")
+    return page("Account", """
+      <h1>Your account</h1>
+      <!-- BUG 11 (auth-only): avatar image 404s — only logged-in audits can see it -->
+      <img src="/static/avatar.png" alt="Your avatar" width="80">
+      <p>Welcome back, demo. Plan: Pro ($29/mo).</p>
+    """)
 
 
 @app.route("/blog")

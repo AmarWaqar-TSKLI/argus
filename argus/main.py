@@ -10,7 +10,7 @@ from datetime import datetime
 from langgraph.checkpoint.sqlite import SqliteSaver
 from rich.console import Console
 
-from argus import browser, config
+from argus import auth, browser, config
 from argus.graph import build_graph
 
 console = Console()
@@ -28,6 +28,9 @@ def main() -> None:
                         help="DOM + CV layers only; zero model calls")
     parser.add_argument("--update-baseline", action="store_true",
                         help="Re-record SSIM baselines instead of comparing")
+    parser.add_argument("--login", metavar="LOGIN_URL", default="",
+                        help="Log in first (creds via ARGUS_LOGIN_USER/"
+                             "ARGUS_LOGIN_PASSWORD env vars), then audit")
     args = parser.parse_args()
 
     if args.no_vision:
@@ -56,6 +59,7 @@ def main() -> None:
             console.print(f"[yellow]Run {run_id} already completed — nothing to resume.[/]")
             return
         done = len(snapshot.values.get("visited", []))
+        browser.configure(str(run_dir / "auth.json"))  # restore session if one was saved
         console.print(f"[bold cyan]Argus[/] resuming run {run_id} "
                       f"[dim]({done} pages already crawled)[/]")
         payload = None  # None = continue from the checkpoint
@@ -82,6 +86,8 @@ def main() -> None:
         }
 
     try:
+        if not args.resume and args.login:
+            auth.login(args.login, str(run_dir))
         final = graph.invoke(payload, config=invoke_config)
     finally:
         browser.shutdown()

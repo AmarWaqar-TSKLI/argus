@@ -11,3 +11,5 @@ scikit-image
 flask
 python-dotenv
 rich
+mcp
+pytest

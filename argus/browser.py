@@ -5,15 +5,30 @@ LangGraph checkpointing keeps working when we enable it in a later phase.
 """
 from argus import config  # noqa: F401  (sets PLAYWRIGHT_BROWSERS_PATH before playwright loads)
 
+from pathlib import Path
+
 from playwright.sync_api import Browser, Page, Playwright, sync_playwright
 
 _pw: Playwright | None = None
 _browser: Browser | None = None
 _page: Page | None = None
+_storage_state: str | None = None  # Playwright storage-state JSON to preload
 
 # Per-page event capture, reset on each navigation by the explorer node.
 console_errors: list[str] = []
 failed_responses: list[dict] = []
+
+
+def configure(storage_state: str | None) -> None:
+    """Preload cookies/localStorage (authenticated session). Call before get_page()."""
+    global _storage_state
+    if storage_state and Path(storage_state).exists():
+        _storage_state = storage_state
+
+
+def save_storage_state(path: str) -> None:
+    if _page is not None:
+        _page.context.storage_state(path=path)
 
 
 def get_page() -> Page:
@@ -21,7 +36,10 @@ def get_page() -> Page:
     if _page is None:
         _pw = sync_playwright().start()
         _browser = _pw.chromium.launch(headless=True)
-        _page = _browser.new_page(viewport={"width": 1280, "height": 800})
+        context = _browser.new_context(
+            viewport={"width": 1280, "height": 800},
+            storage_state=_storage_state)
+        _page = context.new_page()
         _page.on("console", lambda m: console_errors.append(m.text) if m.type == "error" else None)
         _page.on("pageerror", lambda e: console_errors.append(str(e)))
         _page.on(

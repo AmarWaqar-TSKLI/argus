@@ -87,8 +87,29 @@ python -m argus.main --url ... --file-issues owner/repo   # audit + file issues
 python -m argus.main --resume 20260811-164257             # resume a killed run
 python -m argus.main --url ... --no-vision                # DOM + CV only, $0 and fast
 python -m argus.main --url ... --update-baseline          # re-record SSIM baselines
+python -m argus.main --url ... --login https://app/login  # authenticated audit
+#   credentials via ARGUS_LOGIN_USER / ARGUS_LOGIN_PASSWORD env vars;
+#   the session persists into --resume via the run's auth.json
 python scripts/benchmark.py                               # score vs ground truth
+python scripts/benchmark.py --auth                        # includes members-only bugs
 ```
+
+## Use it from Claude Code (MCP)
+
+Argus doubles as an MCP server exposing an `audit` tool, so any MCP client can
+ask for a QA run and get structured findings back:
+
+```jsonc
+// .mcp.json
+{"mcpServers": {"argus": {
+  "command": "path/to/argus/.venv/Scripts/python",
+  "args": ["-m", "argus.mcp_server"],
+  "cwd": "path/to/argus"}}}
+```
+
+Then: *"audit http://localhost:3000 and summarize the high-severity findings"* —
+the agent calls the tool, Argus crawls/interacts/verifies, and returns JSON plus
+the path to the full HTML report.
 
 ## Benchmark
 
@@ -115,5 +136,8 @@ clean, full-chain vision 10–11/11.
 - [x] **Phase 5 — Beyond pages**: interactive flow phase — mechanical enumeration of
       every form and button, LLM planner adding edge-case flows (invalid inputs,
       multi-step sequences), dead-button and flow-failure detection
-- [ ] **Phase 6 — Showcase**: hosted live demo, MCP-native tool integration,
-      login/session support for authenticated apps
+- [x] **Phase 6 — Integrate**: `--login` authenticated audits (session saved for
+      resume; members-only bugs in the benchmark), Argus as an MCP server
+      (`audit` tool callable from Claude Code), pytest suite wired into CI
+- [ ] **Phase 7 — Showcase**: hosted live demo, multi-page flow memory
+      (cart → checkout journeys), production hardening
