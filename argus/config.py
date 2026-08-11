@@ -1,5 +1,6 @@
 """Central config. Loaded first so env vars are set before Playwright imports."""
 import os
+import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -7,8 +8,10 @@ from dotenv import load_dotenv
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 load_dotenv(PROJECT_ROOT / ".env")
 
-# Keep the ~300MB Chromium download off the constrained C: drive.
-os.environ.setdefault("PLAYWRIGHT_BROWSERS_PATH", r"D:\playwright-browsers")
+# Windows dev box only: keep the ~300MB Chromium off the constrained C: drive.
+# Everywhere else (CI, Linux) Playwright's default cache location is correct.
+if sys.platform == "win32":
+    os.environ.setdefault("PLAYWRIGHT_BROWSERS_PATH", r"D:\playwright-browsers")
 
 RUNS_DIR = PROJECT_ROOT / "runs"
 BASELINE_DIR = PROJECT_ROOT / "baseline"
