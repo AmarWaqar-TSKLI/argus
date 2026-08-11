@@ -24,6 +24,7 @@ class PageResult(TypedDict):
     screenshot: str  # path
     phash: str
     title: str
+    interactives: dict  # {"forms": [...], "buttons": [...]} harvested by explorer
 
 
 class ArgusState(TypedDict):
@@ -42,3 +43,4 @@ class ArgusState(TypedDict):
     issues_repo: str              # "owner/repo" to file issues to, "" = off
     issues_filed: int
     update_baseline: bool         # re-record SSIM baselines instead of comparing
+    flows: list[dict]             # interactive flows planned after the crawl

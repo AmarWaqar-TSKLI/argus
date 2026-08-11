@@ -78,6 +78,7 @@ def main() -> None:
             "issues_repo": args.file_issues,
             "issues_filed": 0,
             "update_baseline": args.update_baseline,
+            "flows": [],
         }
 
     try:

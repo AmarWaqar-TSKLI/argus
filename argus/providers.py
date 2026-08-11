@@ -73,3 +73,31 @@ def invoke_vision(messages) -> tuple[str, str]:
         except Exception as exc:
             errors.append(f"{name}: {exc}")
     raise VisionUnavailable("; ".join(errors) or "no vision provider configured")
+
+
+@lru_cache(maxsize=1)
+def _text_chain() -> list[tuple[str, object]]:
+    chain: list[tuple[str, object]] = []
+    if config.DISABLE_VISION:  # --no-vision means zero model calls of any kind
+        return chain
+    if config.GROQ_API_KEY:
+        from langchain_groq import ChatGroq
+
+        chain.append(("groq-llama", ChatGroq(
+            model=config.GROQ_TEXT_MODEL, temperature=0, max_retries=1, timeout=60)))
+    if config.GOOGLE_API_KEY:
+        from langchain_google_genai import ChatGoogleGenerativeAI
+
+        chain.append(("gemini-lite", ChatGoogleGenerativeAI(
+            model=config.TEXT_MODEL_FALLBACK, temperature=0, max_retries=1, timeout=60)))
+    return chain
+
+
+def invoke_text(prompt: str) -> tuple[str, str]:
+    errors = []
+    for name, model in _text_chain():
+        try:
+            return text_of(model.invoke(prompt).content), name
+        except Exception as exc:
+            errors.append(f"{name}: {exc}")
+    raise VisionUnavailable("; ".join(errors) or "no text provider configured")

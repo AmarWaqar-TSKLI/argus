@@ -37,6 +37,14 @@ VISION_MODEL = "gemini-flash-latest"
 GROQ_VISION_MODEL = "qwen/qwen3.6-27b"
 VISION_MODEL_FALLBACK = "gemini-flash-lite-latest"
 
+# Text chain (flow planner): no images, so Groq's fast Llama serves it —
+# a separate free quota from every vision bucket above.
+GROQ_TEXT_MODEL = "llama-3.3-70b-versatile"
+TEXT_MODEL_FALLBACK = "gemini-flash-lite-latest"
+
+# Interactive-flow phase limits.
+MAX_FLOWS = 12
+
 # Screenshots are downscaled to this width before being sent to the VLM —
 # layout bugs survive downscaling, token cost doesn't.
 VLM_IMAGE_WIDTH = 1024

@@ -27,7 +27,8 @@ from argus.graph import build_graph
 PORT = 5099
 BASE = f"http://127.0.0.1:{PORT}"
 
-# (finding type, page path, needs_vision) — mirrors demo_app/BUGS.md.
+# (finding type — "a|b" accepts either, page path, needs_vision) — mirrors
+# demo_app/BUGS.md. Flow rows are deterministic (mechanical enumeration).
 EXPECTED = [
     ("broken-link", "/summer-sale", False),
     ("missing-alt", "/", False),
@@ -36,6 +37,8 @@ EXPECTED = [
     ("console-error", "/about", False),
     ("unlabeled-input", "/contact", False),
     ("failed-request", "/contact", False),
+    ("flow-failure", "/contact", False),                    # POST /subscribe 500s
+    ("dead-button|unclickable-element", "/about", False),   # inert 'Meet the team'
     ("visual", "/pricing", True),   # low-contrast refund text
     ("visual", "/about", True),     # overlapping button
 ]
@@ -76,6 +79,7 @@ def main() -> int:
             "visited": [], "seen_hashes": [], "pages": [], "findings": [],
             "refuted": [], "current": None, "vlm_calls": 0, "vlm_skipped": 0,
             "issues_repo": "", "issues_filed": 0, "update_baseline": False,
+            "flows": [],
         }
         final = build_graph().invoke(state, config={"recursion_limit": 1000})
     finally:
@@ -86,13 +90,16 @@ def main() -> int:
     found = {(f["type"], urlparse(f["url"]).path or "/") for f in final["findings"]}
     applicable = [e for e in EXPECTED if vision_on or not e[2]]
 
+    def caught(type_spec: str, path: str) -> bool:
+        return any((t, path) in found for t in type_spec.split("|"))
+
     table = Table(title=f"Argus benchmark — {'DOM+CV+vision' if vision_on else 'DOM+CV only'}")
     table.add_column("Expected bug")
     table.add_column("Page")
     table.add_column("Result")
     hits = 0
     for type_, path, needs_vision in EXPECTED:
-        if (type_, path) in found:
+        if caught(type_, path):
             hits += 1
             table.add_row(type_, path, "[green]caught[/]")
         elif needs_vision and not vision_on:
@@ -103,9 +110,9 @@ def main() -> int:
     false_pos = [f for f in final["findings"]
                  if (urlparse(f["url"]).path or "/") == CONTROL_PAGE]
     dom_rows = [e for e in EXPECTED if not e[2]]
-    dom_hits = sum(1 for t, p, _ in dom_rows if (t, p) in found)
+    dom_hits = sum(1 for t, p, _ in dom_rows if caught(t, p))
     vision_rows = [e for e in EXPECTED if e[2]] if vision_on else []
-    vision_hits = sum(1 for t, p, _ in vision_rows if (t, p) in found)
+    vision_hits = sum(1 for t, p, _ in vision_rows if caught(t, p))
 
     recall = hits / len(applicable)
     console.print(table)

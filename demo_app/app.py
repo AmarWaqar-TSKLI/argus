@@ -71,14 +71,20 @@ def about():
 def contact():
     return page("Contact", """
       <h1>Contact</h1>
-      <form>
+      <!-- BUG 9: submitting this form hits an endpoint that 500s -->
+      <form action="/subscribe" method="post">
         <!-- BUG 7: input with no label -->
-        <input type="email" placeholder="you@example.com">
+        <input type="email" name="email" placeholder="you@example.com">
         <button type="submit">Subscribe</button>
       </form>
       <!-- BUG 8: fetch to an endpoint that 404s -->
       <script>fetch('/api/office-locations').then(r => r.json()).catch(() => {});</script>
     """)
+
+
+@app.route("/subscribe", methods=["POST"])
+def subscribe():
+    return "Internal Server Error", 500
 
 
 @app.route("/blog")

@@ -12,5 +12,7 @@ Argus's benchmark: recall = how many of these it finds, precision = no findings 
 | 6 | /about | Uncaught JS error on load | console-error | DOM (Phase 1) |
 | 7 | /contact | Email input has no label | unlabeled-input | DOM (Phase 1) |
 | 8 | /contact | fetch to /api/office-locations 404s | failed-request | DOM (Phase 1) |
+| 9 | /contact | Form submit → POST /subscribe returns 500 | flow-failure | Flows (Phase 5) |
+| 10 | /about | 'Meet the team' button does nothing when clicked | dead-button / unclickable-element | Flows (Phase 5) |
 
 /blog is the clean control page — anything reported there is a false positive.

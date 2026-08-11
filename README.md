@@ -22,6 +22,12 @@ writes a structured QA report — for **$0.00** in model costs.
   image. Detection gates on changed-region *area*, not just global SSIM — a moved
   heading on a sparse page barely dents SSIM (0.983) but lights up as 27k px² of
   drift.
+- **It uses the app, not just reads it.** After the crawl, every form is filled
+  and submitted and every button clicked — mechanically enumerated, so it works
+  with zero API keys — then a planner LLM proposes smarter flows on top (invalid
+  inputs, multi-step sequences). Catches `flow-failure` (submit → HTTP 500),
+  `dead-button` (click changes nothing observable), and `unclickable-element`
+  (click physically blocked by overlap — visual bugs with functional impact).
 - **Adversarial verification.** A skeptic verifier agent re-examines every vision
   claim before it ships, biased toward refutation. In testing it caught the VLM
   hallucinating an "unreadable nav" bug on a clean control page — and refuted it
@@ -59,13 +65,15 @@ to `.env` to enable visual audits. See `.env.example`.
 ## Architecture
 
 ```
-        ┌────────────────────────────────────┐
-        ▼                                    │
-START → explore → dom_audit → vision_audit ──┤ frontier left?
-        (Playwright  (free      (failover    │
-         + phash)     checks)    chain)      └─ no ─┐
-                                                    ▼
-              END ← report ← file_issues ← verify (skeptic agent)
+        ┌──────────────────────────────────────────────────┐
+        ▼                                                  │
+START → explore → dom_audit → regression → vision_audit ───┤ frontier left?
+        (Playwright) (free)    (SSIM, free)  (VLM chain)   │
+                                                           ▼ no
+                        plan_flows → act_flows → verify → file_issues
+                        (enumerate    (execute,  (skeptic     │
+                         + planner)    judge)     agent)      ▼
+                                              END ← report ───┘
 ```
 
 State machine built with LangGraph's `StateGraph`; the browser session lives
@@ -91,7 +99,8 @@ strict where it should be and honest where it must be: **deterministic layers
 reported but not gated, because it varies with which free-tier model in the
 failover chain served the call.
 
-Current: DOM+CV 7/7 (100%), control page clean, full-chain vision 8–9/9.
+Current: deterministic layers (DOM + CV + flows) 9/9 (100%), control page
+clean, full-chain vision 10–11/11.
 
 ## Roadmap
 
@@ -103,5 +112,8 @@ Current: DOM+CV 7/7 (100%), control page clean, full-chain vision 8–9/9.
 - [x] **Phase 4 — Ship it**: durable checkpointed runs (kill mid-audit → `--resume`),
       SSIM visual regression with boxed diff images, recall/precision benchmark
       gating CI, GitHub Actions workflow
-- [ ] **Phase 5 — Beyond pages**: planner agent that explores interactive user flows
-      (forms, carts, logins), hosted live demo, MCP-native tool integration
+- [x] **Phase 5 — Beyond pages**: interactive flow phase — mechanical enumeration of
+      every form and button, LLM planner adding edge-case flows (invalid inputs,
+      multi-step sequences), dead-button and flow-failure detection
+- [ ] **Phase 6 — Showcase**: hosted live demo, MCP-native tool integration,
+      login/session support for authenticated apps
