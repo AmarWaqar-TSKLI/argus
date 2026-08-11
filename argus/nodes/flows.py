@@ -129,6 +129,8 @@ def _run_flow(flow: dict) -> list[Finding]:
         add("flow-failure", "high",
             f"{flow['goal']} → {resp['url']} responded HTTP {resp['status']}")
     for err in browser.console_errors:
+        if err.startswith("Failed to load resource"):
+            continue  # echo of a failed response reported above
         add("flow-failure", "high", f"{flow['goal']} → console error: {err[:200]}")
 
     if (flow["kind"] == "button" and not findings and page.url == before_url

@@ -40,6 +40,10 @@ def dom_audit(state: ArgusState) -> dict:
             f"Page returned HTTP {current['status']} (linked from {current['found_on']})")
 
     for err in browser.console_errors:
+        # "Failed to load resource" is the browser echoing a failed request we
+        # already report separately — filing both was pure duplication.
+        if err.startswith("Failed to load resource"):
+            continue
         add("console-error", "high", err[:300])
 
     for resp in browser.failed_responses:
