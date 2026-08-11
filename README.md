@@ -7,13 +7,21 @@ writes a structured QA report — for **$0.00** in model costs.
 > Built on LangGraph (durable multi-agent orchestration) · Playwright · OpenCV ·
 > Gemini Flash free tier, with rate-limit-aware provider failover.
 
-<!-- TODO: demo GIF goes here — this is the first thing anyone sees -->
+![Argus audit report — findings with screenshot evidence, severity, and the layer that caught each bug](docs/demo.gif)
 
 ## Why it's interesting
 
 - **DOM-first, vision-second.** Free deterministic checks (broken links, dead
   resources, JS errors, a11y) catch the mechanical 80%; the VLM is spent only on
   what the DOM literally cannot see — layout breakage, overlap, contrast.
+- **Durable runs.** Every graph step checkpoints to SQLite. Kill the process
+  mid-audit, run `--resume <RUN_ID>`, and it continues from the exact page it
+  died on — LangGraph durability doing real work, not a demo flag.
+- **SSIM visual regression.** Classic CV, zero model calls: each page is compared
+  against its stored baseline, and drifted regions are boxed in red on a diff
+  image. Detection gates on changed-region *area*, not just global SSIM — a moved
+  heading on a sparse page barely dents SSIM (0.983) but lights up as 27k px² of
+  drift.
 - **Adversarial verification.** A skeptic verifier agent re-examines every vision
   claim before it ships, biased toward refutation. In testing it caught the VLM
   hallucinating an "unreadable nav" bug on a clean control page — and refuted it
@@ -68,15 +76,32 @@ outside graph state so checkpointing/resume (Phase 4) stays possible.
 ```powershell
 python -m argus.main --url https://your-app.example       # audit
 python -m argus.main --url ... --file-issues owner/repo   # audit + file issues
+python -m argus.main --resume 20260811-164257             # resume a killed run
+python -m argus.main --url ... --no-vision                # DOM + CV only, $0 and fast
+python -m argus.main --url ... --update-baseline          # re-record SSIM baselines
+python scripts/benchmark.py                               # score vs ground truth
 ```
+
+## Benchmark
+
+`scripts/benchmark.py` boots the injected-bug demo app and scores the agent
+against [ground truth](demo_app/BUGS.md). CI runs it on every push. The gate is
+strict where it should be and honest where it must be: **deterministic layers
+(DOM + CV) must hit 100% recall with a clean control page**; vision recall is
+reported but not gated, because it varies with which free-tier model in the
+failover chain served the call.
+
+Current: DOM+CV 7/7 (100%), control page clean, full-chain vision 8–9/9.
 
 ## Roadmap
 
 - [x] **Phase 1 — Explorer + DOM audit**: BFS crawl, screenshots, free checks, report
 - [x] **Phase 2 — Vision layer**: VLM visual audit on a free-tier failover chain
-      (Gemini Flash → Groq Qwen3.6), phash dedup, designed HTML report
+      (Gemini Flash → Groq Qwen3.6 → Gemini Flash-Lite), phash dedup, designed HTML report
 - [x] **Phase 3 — Multi-agent**: adversarial verifier agent (refutes hallucinated
       findings before they ship), GitHub issue filing with fingerprint dedup
-- [ ] **Phase 4 — Ship it**: durable checkpointed runs (kill it mid-audit, it resumes),
-      GitHub Action mode, SSIM visual regression between runs, planner agent for
-      interactive user flows, recall/precision benchmark in CI, hosted demo
+- [x] **Phase 4 — Ship it**: durable checkpointed runs (kill mid-audit → `--resume`),
+      SSIM visual regression with boxed diff images, recall/precision benchmark
+      gating CI, GitHub Actions workflow
+- [ ] **Phase 5 — Beyond pages**: planner agent that explores interactive user flows
+      (forms, carts, logins), hosted live demo, MCP-native tool integration

@@ -17,6 +17,7 @@ def explore(state: ArgusState) -> dict:
     url = normalize(item["url"])
     visited = state["visited"] + [url]
 
+    print(f"  [{len(visited)}/{state['max_pages']}] {url}", flush=True)
     page = browser.get_page()
     browser.reset_capture()
 

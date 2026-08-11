@@ -1,4 +1,5 @@
 langgraph>=1.0
+langgraph-checkpoint-sqlite
 langchain>=1.0
 langchain-google-genai
 langchain-groq

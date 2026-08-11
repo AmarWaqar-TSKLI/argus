@@ -1,0 +1,50 @@
+name: Argus benchmark
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "External URL to audit instead of the benchmark"
+        required: false
+        default: ""
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    env:
+      # With repo secrets set, CI runs the full DOM+CV+vision benchmark;
+      # without them, Argus degrades gracefully to DOM+CV and the vision
+      # rows score as n/a. Either way the gate is recall=100%, zero
+      # control-page false positives.
+      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          playwright install --with-deps chromium
+
+      - name: Run benchmark against injected-bug demo app
+        if: ${{ inputs.url == '' }}
+        run: python scripts/benchmark.py
+
+      - name: Audit external URL
+        if: ${{ inputs.url != '' }}
+        run: python -m argus.main --url "${{ inputs.url }}" --max-pages 15
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: argus-reports
+          path: runs/**/report.*
+          if-no-files-found: ignore

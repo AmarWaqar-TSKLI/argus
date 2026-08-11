@@ -1,7 +1,13 @@
-"""CLI entry: python -m argus.main --url http://127.0.0.1:5000"""
+"""CLI entry: python -m argus.main --url http://127.0.0.1:5000
+
+Every run is checkpointed to SQLite after each graph step. Kill the process
+mid-audit and resume it with:  python -m argus.main --resume <RUN_ID>
+"""
 import argparse
+import sqlite3
 from datetime import datetime
 
+from langgraph.checkpoint.sqlite import SqliteSaver
 from rich.console import Console
 
 from argus import browser, config
@@ -12,38 +18,70 @@ console = Console()
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Argus — autonomous visual QA agent")
-    parser.add_argument("--url", required=True, help="Base URL of the app to audit")
+    parser.add_argument("--url", help="Base URL of the app to audit")
     parser.add_argument("--max-pages", type=int, default=15)
     parser.add_argument("--file-issues", metavar="OWNER/REPO", default="",
                         help="File verified high/medium findings as GitHub issues")
+    parser.add_argument("--resume", metavar="RUN_ID", default="",
+                        help="Resume an interrupted run (folder name under runs/)")
+    parser.add_argument("--no-vision", action="store_true",
+                        help="DOM + CV layers only; zero model calls")
+    parser.add_argument("--update-baseline", action="store_true",
+                        help="Re-record SSIM baselines instead of comparing")
     args = parser.parse_args()
 
-    run_dir = config.RUNS_DIR / datetime.now().strftime("%Y%m%d-%H%M%S")
-    run_dir.mkdir(parents=True)
+    if args.no_vision:
+        config.DISABLE_VISION = True
 
-    mode = "DOM + vision" if config.has_vlm() else "DOM-only (no GOOGLE_API_KEY set)"
-    console.print(f"[bold cyan]Argus[/] auditing {args.url}  [dim]({mode})[/]")
+    if args.resume:
+        run_id = args.resume
+        run_dir = config.RUNS_DIR / run_id
+        if not run_dir.exists():
+            parser.error(f"no run named {run_id} under {config.RUNS_DIR}")
+    else:
+        if not args.url:
+            parser.error("--url is required for a new run")
+        run_id = datetime.now().strftime("%Y%m%d-%H%M%S")
+        run_dir = config.RUNS_DIR / run_id
+        run_dir.mkdir(parents=True)
 
-    state = {
-        "base_url": args.url.rstrip("/"),
-        "max_pages": args.max_pages,
-        "run_dir": str(run_dir),
-        "frontier": [{"url": args.url, "found_on": "(start)"}],
-        "visited": [],
-        "seen_hashes": [],
-        "pages": [],
-        "findings": [],
-        "refuted": [],
-        "current": None,
-        "vlm_calls": 0,
-        "vlm_skipped": 0,
-        "issues_repo": args.file_issues,
-        "issues_filed": 0,
-    }
+    checkpointer = SqliteSaver(
+        sqlite3.connect(config.RUNS_DIR / "checkpoints.db", check_same_thread=False))
+    graph = build_graph(checkpointer)
+    invoke_config = {"configurable": {"thread_id": run_id}, "recursion_limit": 1000}
+
+    if args.resume:
+        snapshot = graph.get_state(invoke_config)
+        if not snapshot.next:
+            console.print(f"[yellow]Run {run_id} already completed — nothing to resume.[/]")
+            return
+        done = len(snapshot.values.get("visited", []))
+        console.print(f"[bold cyan]Argus[/] resuming run {run_id} "
+                      f"[dim]({done} pages already crawled)[/]")
+        payload = None  # None = continue from the checkpoint
+    else:
+        mode = "DOM + vision" if config.has_vlm() else "DOM + CV only (no vision)"
+        console.print(f"[bold cyan]Argus[/] auditing {args.url}  [dim]({mode} · run {run_id})[/]")
+        payload = {
+            "base_url": args.url.rstrip("/"),
+            "max_pages": args.max_pages,
+            "run_dir": str(run_dir),
+            "frontier": [{"url": args.url, "found_on": "(start)"}],
+            "visited": [],
+            "seen_hashes": [],
+            "pages": [],
+            "findings": [],
+            "refuted": [],
+            "current": None,
+            "vlm_calls": 0,
+            "vlm_skipped": 0,
+            "issues_repo": args.file_issues,
+            "issues_filed": 0,
+            "update_baseline": args.update_baseline,
+        }
 
     try:
-        # ~4 graph steps per page, so give the loop generous headroom.
-        final = build_graph().invoke(state, config={"recursion_limit": 1000})
+        final = graph.invoke(payload, config=invoke_config)
     finally:
         browser.shutdown()
 
@@ -55,7 +93,7 @@ def main() -> None:
         f"VLM calls: {final['vlm_calls']} made / {final['vlm_skipped']} avoided"
     )
     if final["issues_filed"]:
-        console.print(f"GitHub issues filed: [bold]{final['issues_filed']}[/] → {args.file_issues}")
+        console.print(f"GitHub issues filed: [bold]{final['issues_filed']}[/] → {final['issues_repo']}")
     console.print(f"Report: [green]{run_dir / 'report.html'}[/]")
 
 

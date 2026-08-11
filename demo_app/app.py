@@ -91,4 +91,5 @@ def blog():
 
 
 if __name__ == "__main__":
-    app.run(port=5000)
+    import os
+    app.run(port=int(os.environ.get("ARGUS_DEMO_PORT", "5000")))

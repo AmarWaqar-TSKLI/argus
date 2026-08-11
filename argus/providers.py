@@ -18,6 +18,8 @@ class VisionUnavailable(Exception):
 @lru_cache(maxsize=1)
 def _chain() -> list[tuple[str, object]]:
     chain: list[tuple[str, object]] = []
+    if config.DISABLE_VISION:
+        return chain
     # max_retries=1: when a provider rate-limits, fail over to the next link
     # fast instead of sitting through minutes of exponential backoff.
     if config.GOOGLE_API_KEY:
@@ -30,6 +32,11 @@ def _chain() -> list[tuple[str, object]]:
 
         chain.append(("groq", ChatGroq(
             model=config.GROQ_VISION_MODEL, temperature=0, max_retries=1, timeout=60)))
+    if config.GOOGLE_API_KEY:
+        from langchain_google_genai import ChatGoogleGenerativeAI
+
+        chain.append(("gemini-lite", ChatGoogleGenerativeAI(
+            model=config.VISION_MODEL_FALLBACK, temperature=0, max_retries=1, timeout=60)))
     return chain
 
 

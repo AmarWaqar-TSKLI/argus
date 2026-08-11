@@ -41,3 +41,4 @@ class ArgusState(TypedDict):
     vlm_skipped: int              # audits avoided via phash dedup / no-key mode
     issues_repo: str              # "owner/repo" to file issues to, "" = off
     issues_filed: int
+    update_baseline: bool         # re-record SSIM baselines instead of comparing
