@@ -1,0 +1,12 @@
+langgraph>=1.0
+langchain>=1.0
+langchain-google-genai
+langchain-groq
+playwright
+opencv-python-headless
+pillow
+imagehash
+scikit-image
+flask
+python-dotenv
+rich
