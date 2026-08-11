@@ -14,6 +14,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Argus — autonomous visual QA agent")
     parser.add_argument("--url", required=True, help="Base URL of the app to audit")
     parser.add_argument("--max-pages", type=int, default=15)
+    parser.add_argument("--file-issues", metavar="OWNER/REPO", default="",
+                        help="File verified high/medium findings as GitHub issues")
     args = parser.parse_args()
 
     run_dir = config.RUNS_DIR / datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -31,9 +33,12 @@ def main() -> None:
         "seen_hashes": [],
         "pages": [],
         "findings": [],
+        "refuted": [],
         "current": None,
         "vlm_calls": 0,
         "vlm_skipped": 0,
+        "issues_repo": args.file_issues,
+        "issues_filed": 0,
     }
 
     try:
@@ -46,8 +51,11 @@ def main() -> None:
     console.print(
         f"\n[bold]{len(final['pages'])}[/] pages crawled · "
         f"[bold red]{len(final['findings'])}[/] findings ({high} high) · "
+        f"[dim]{len(final['refuted'])} refuted by verifier[/] · "
         f"VLM calls: {final['vlm_calls']} made / {final['vlm_skipped']} avoided"
     )
+    if final["issues_filed"]:
+        console.print(f"GitHub issues filed: [bold]{final['issues_filed']}[/] → {args.file_issues}")
     console.print(f"Report: [green]{run_dir / 'report.html'}[/]")
 
 

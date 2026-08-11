@@ -35,6 +35,9 @@ class ArgusState(TypedDict):
     seen_hashes: list[str]        # perceptual hashes of screens already vision-audited
     pages: list[PageResult]
     findings: list[Finding]
+    refuted: list[Finding]        # vision claims the verifier agent rejected
     current: PageResult | None    # page just explored, consumed by audit nodes
     vlm_calls: int
     vlm_skipped: int              # audits avoided via phash dedup / no-key mode
+    issues_repo: str              # "owner/repo" to file issues to, "" = off
+    issues_filed: int

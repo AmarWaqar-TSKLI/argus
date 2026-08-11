@@ -15,10 +15,11 @@ RUNS_DIR = PROJECT_ROOT / "runs"
 GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY", "")
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
 
-# Vision model used when a key is present. Free-tier, vision-capable.
-# The -latest alias survives Google's model retirements (2.5-flash is already
-# closed to new accounts).
+# Vision chain, in failover order. The -latest alias survives Google's model
+# retirements (2.5-flash is already closed to new accounts). The Groq Qwen
+# model accepts image input (verified empirically — it's not labeled "-VL").
 VISION_MODEL = "gemini-flash-latest"
+GROQ_VISION_MODEL = "qwen/qwen3.6-27b"
 
 # Screenshots are downscaled to this width before being sent to the VLM —
 # layout bugs survive downscaling, token cost doesn't.
@@ -26,4 +27,4 @@ VLM_IMAGE_WIDTH = 1024
 
 
 def has_vlm() -> bool:
-    return bool(GOOGLE_API_KEY)
+    return bool(GOOGLE_API_KEY or GROQ_API_KEY)
