@@ -70,8 +70,8 @@
   .split { display: grid; grid-template-columns: 1fr 1.25fr; gap: 64px; align-items: center; }
   .shot { position: relative; display: block; }
   .shot::before { content: ""; position: absolute; inset: 28px -18px -18px 28px; background: var(--teal); border-radius: 6px; }
-  .shot img { position: relative; display: block; width: 100%; border-radius: 6px; border: 1px solid #cfc9b8; }
-  .shot .tag { position: absolute; left: -14px; top: 26px; background: var(--coral); color: #fff; font: 600 13px var(--mono); padding: 6px 12px; border-radius: 3px; transform: rotate(-3deg); }
+  .shot img { position: relative; display: block; width: 100%; height: auto; border-radius: 6px; border: 1px solid #cfc9b8; }
+  .shot .tag { position: absolute; z-index: 1; left: -14px; top: 26px; background: var(--coral); color: #fff; font: 600 13px var(--mono); padding: 6px 12px; border-radius: 3px; transform: rotate(-3deg); }
   .bullets { list-style: none; padding: 0; margin: 28px 0 32px; }
   .bullets li { padding: 12px 0; border-top: 1.5px solid var(--ink); font-size: 16px; }
   .bullets li:last-child { border-bottom: 1.5px solid var(--ink); }
@@ -144,7 +144,6 @@
     nav .links a:not(:last-child) { display: none; }
     .term { box-shadow: 8px 8px 0 var(--coral); }
     .shot .tag { left: 8px; }
-    .shot img { height: 300px; object-fit: cover; object-position: left top; }
     .sc th:nth-child(2), .sc td:nth-child(2) { display: none; }
     .sc th, .sc td { padding: 12px 10px; font-size: 15px; }
     .sc th { font-size: 11px; }
@@ -202,7 +201,7 @@
     </div>
     <a class="shot" href="report.html" aria-label="Open the full audit report">
       <span class="tag">real output</span>
-      <img src="report-preview.jpg" alt="The Argus audit report for DemoShop: pages crawled, verified findings, model spend and findings by type" width="1400" height="1158" loading="lazy">
+      <img src="report-preview.jpg" alt="The Argus audit report for DemoShop: pages crawled, verified findings, model spend and findings by type" width="1400" height="868" loading="lazy">
     </a>
   </div>
 </section>
