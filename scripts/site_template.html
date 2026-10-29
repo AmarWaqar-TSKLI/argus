@@ -3,193 +3,305 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Argus — autonomous AI QA agent</title>
-<meta name="description" content="An AI agent that tests web apps like a human tester and reports the bugs it finds.">
+<title>Argus — the QA agent with a hundred eyes</title>
+<meta name="description" content="An AI agent that tests web apps the way a person would, then shows its work.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@112,500;112,800;125,900&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #ffffff; --soft: #f5f7f6; --ink: #141a19; --ink-2: #4b5755; --muted: #7a8784;
-    --line: #e3e8e6; --accent: #0e7c6e; --accent-soft: #e3f1ee; --bad: #b42318; --bad-soft: #fdecea;
-    --term: #0f1514; --term-ink: #d6e2df;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg: #0d1211; --soft: #141b1a; --ink: #e8efed; --ink-2: #a9b8b4; --muted: #7d8c88;
-      --line: #24302e; --accent: #3dd1bc; --accent-soft: #113430; --bad: #f59a92; --bad-soft: #3a1a17; --term: #070b0a; }
+    --deep: #072a31; --deep-2: #0d3c45; --teal: #12a08c; --lime: #d7f54b;
+    --coral: #ff6a4d; --paper: #f4f1e8; --paper-2: #e9e4d6; --ink: #13201f; --ink-2: #4c5a58;
+    --display: "Archivo", "Arial Narrow", sans-serif;
+    --text: "IBM Plex Sans", system-ui, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
   }
   * { box-sizing: border-box; }
-  html { color-scheme: light dark; }
-  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  a { color: var(--accent); }
-  .wrap { max-width: 960px; margin: 0 auto; padding: 0 20px; }
-  nav { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; }
-  .brand { font-weight: 700; letter-spacing: .02em; }
-  .brand span { color: var(--accent); }
-  nav a.gh { color: var(--ink-2); text-decoration: none; font-size: 14px; }
-  .hero { padding: 48px 0 32px; }
-  h1 { font-size: clamp(30px, 5vw, 46px); line-height: 1.12; margin: 0 0 16px; letter-spacing: -.02em; }
-  .lead { font-size: 18px; color: var(--ink-2); max-width: 640px; margin: 0 0 28px; }
-  .ctas { display: flex; gap: 12px; flex-wrap: wrap; }
-  .btn { display: inline-block; padding: 11px 18px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px; border: 1px solid var(--line); color: var(--ink); }
-  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-  @media (prefers-color-scheme: dark) { .btn.primary { color: #062420; } }
-  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; margin: 40px 0 0; }
-  .stat { background: var(--bg); padding: 18px 20px; }
-  .stat b { display: block; font-size: 28px; letter-spacing: -.02em; }
-  .stat span { font-size: 13px; color: var(--muted); }
-  section { padding: 56px 0 0; }
-  h2 { font-size: 24px; margin: 0 0 8px; letter-spacing: -.01em; }
-  .sub { color: var(--ink-2); margin: 0 0 24px; max-width: 680px; }
-  .term { background: var(--term); color: var(--term-ink); border-radius: 12px; overflow: hidden; }
-  .term-bar { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-bottom: 1px solid #1f2a28; font: 12px ui-monospace, Menlo, Consolas, monospace; color: #7d8c88; }
-  .term-bar button { background: none; border: 1px solid #2b3a37; color: #d6e2df; border-radius: 6px; padding: 4px 10px; font: inherit; cursor: pointer; }
-  .term pre { margin: 0; padding: 16px; font: 13px/1.7 ui-monospace, Menlo, Consolas, monospace; min-height: 330px; white-space: pre-wrap; word-break: break-all; }
-  .term .c-flow { color: #f0c36b; } .term .c-ok { color: #5fe0c9; } .term .c-dim { color: #7d8c88; }
-  table { width: 100%; border-collapse: collapse; font-size: 15px; }
-  th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; padding: 10px 12px; border-bottom: 1px solid var(--line); }
-  td { padding: 11px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
-  td.num { color: var(--muted); width: 32px; }
-  td a { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; }
-  .pill { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 99px; }
-  .pill.ok { background: var(--accent-soft); color: var(--accent); }
-  .pill.miss { background: var(--bad-soft); color: var(--bad); }
-  .muted { color: var(--muted); font-size: 13px; }
-  .table-wrap { border: 1px solid var(--line); border-radius: 12px; overflow-x: auto; }
-  .table-wrap table tr:last-child td { border-bottom: 0; }
-  .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; counter-reset: s; }
-  .step { border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
-  .step::before { counter-increment: s; content: counter(s); display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-size: 13px; font-weight: 700; margin-bottom: 8px; }
-  .step b { display: block; margin-bottom: 4px; }
-  .step p { margin: 0; font-size: 14px; color: var(--ink-2); }
-  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-  .card { background: var(--soft); border-radius: 12px; padding: 18px; }
-  .card h3 { font-size: 16px; margin: 0 0 8px; }
-  .card p { margin: 0 0 8px; font-size: 14px; color: var(--ink-2); }
-  .card p:last-child { margin: 0; }
-  .card .k { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); display: block; }
-  code.block { display: block; background: var(--soft); border-radius: 12px; padding: 16px; font: 13px/1.7 ui-monospace, Menlo, Consolas, monospace; white-space: pre; overflow-x: auto; }
-  footer { padding: 56px 0 40px; color: var(--muted); font-size: 14px; }
-  @media (max-width: 760px) {
-    .stats { grid-template-columns: repeat(2, 1fr); }
-    .steps, .cards { grid-template-columns: 1fr; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 17px/1.6 var(--text); -webkit-font-smoothing: antialiased; }
+  a { color: inherit; }
+  .wrap { max-width: 1160px; margin: 0 auto; padding: 0 28px; }
+  .mono { font-family: var(--mono); }
+
+  /* ── hero ─────────────────────────────────────────── */
+  .hero { background: var(--deep); color: var(--paper); position: relative; overflow: hidden; }
+  .hero::after { /* the peacock eye: rings of the tail feather, bottom right */
+    content: ""; position: absolute; right: -180px; bottom: -220px; width: 560px; height: 560px; border-radius: 50%;
+    background: radial-gradient(circle, var(--lime) 0 9%, var(--deep) 9% 13%, var(--teal) 13% 26%, var(--deep) 26% 30%, var(--deep-2) 30% 52%, transparent 52%);
+    opacity: .55; pointer-events: none;
+  }
+  nav { display: flex; justify-content: space-between; align-items: center; padding: 26px 0; position: relative; z-index: 1; }
+  .logo { font: 900 22px var(--display); font-stretch: 125%; letter-spacing: .04em; text-decoration: none; }
+  .logo b { color: var(--lime); }
+  nav .links a { margin-left: 24px; text-decoration: none; font-size: 15px; opacity: .8; }
+  nav .links a:hover { opacity: 1; }
+  .hero-grid > *, .split > *, .run > * { min-width: 0; }
+  .hero-grid { display: grid; grid-template-columns: 1.05fr 1fr; gap: 56px; align-items: center; padding: 40px 0 72px; position: relative; z-index: 1; }
+  .kicker { font: 500 13px var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--lime); margin: 0 0 18px; }
+  h1 { font: 900 clamp(40px, 6vw, 74px)/.98 var(--display); font-stretch: 112%; letter-spacing: -.02em; margin: 0 0 24px; }
+  h1 em { font-style: normal; color: var(--deep); background: var(--lime); padding: 0 .12em; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+  .lead { font-size: 19px; color: #c6d6d2; margin: 0 0 32px; max-width: 520px; }
+  .ctas { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+  .btn { display: inline-block; padding: 14px 22px; font-weight: 600; font-size: 16px; text-decoration: none; border-radius: 4px; }
+  .btn-lime { background: var(--lime); color: var(--deep); }
+  .btn-lime:hover { background: #e6ff6e; }
+  .btn-line { border: 1.5px solid rgba(244,241,232,.45); color: var(--paper); }
+  .btn-line:hover { border-color: var(--paper); }
+
+  .term { background: #03181c; border-radius: 6px; box-shadow: 14px 14px 0 var(--coral); }
+  .term-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #12353b; font: 12px var(--mono); color: #6f9690; }
+  .term-bar span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .term-bar button { flex: none; background: var(--lime); color: var(--deep); border: 0; border-radius: 3px; padding: 5px 12px; font: 600 12px var(--mono); cursor: pointer; }
+  .term pre { margin: 0; padding: 18px; min-height: 360px; font: 13px/1.75 var(--mono); color: #cfe3de; white-space: pre-wrap; word-break: break-word; }
+  .term .flow { color: var(--coral); } .term .done { color: var(--lime); font-weight: 500; } .term .dim { color: #6f9690; }
+
+  /* ── verdict band ─────────────────────────────────── */
+  .verdict { background: var(--lime); color: var(--deep); padding: 40px 0; }
+  .verdict p { margin: 0; font: 800 clamp(26px, 3.6vw, 44px)/1.15 var(--display); font-stretch: 112%; letter-spacing: -.01em; }
+  .verdict s { text-decoration: none; border-bottom: 4px solid var(--coral); }
+  .verdict small { display: block; margin-top: 12px; font: 400 16px var(--text); color: #2c4a3f; }
+
+  /* ── sections ─────────────────────────────────────── */
+  section { padding: 96px 0; }
+  h2 { font: 900 clamp(32px, 4.4vw, 52px)/1.02 var(--display); font-stretch: 112%; letter-spacing: -.02em; margin: 0 0 18px; }
+  .intro { font-size: 18px; color: var(--ink-2); max-width: 620px; margin: 0 0 44px; }
+  .intro a { color: var(--deep); text-decoration-color: var(--coral); text-decoration-thickness: 2px; }
+
+  /* report preview: asymmetric split */
+  .split { display: grid; grid-template-columns: 1fr 1.25fr; gap: 64px; align-items: center; }
+  .shot { position: relative; display: block; }
+  .shot::before { content: ""; position: absolute; inset: 28px -18px -18px 28px; background: var(--teal); border-radius: 6px; }
+  .shot img { position: relative; display: block; width: 100%; border-radius: 6px; border: 1px solid #cfc9b8; }
+  .shot .tag { position: absolute; left: -14px; top: 26px; background: var(--coral); color: #fff; font: 600 13px var(--mono); padding: 6px 12px; border-radius: 3px; transform: rotate(-3deg); }
+  .bullets { list-style: none; padding: 0; margin: 28px 0 32px; }
+  .bullets li { padding: 12px 0; border-top: 1.5px solid var(--ink); font-size: 16px; }
+  .bullets li:last-child { border-bottom: 1.5px solid var(--ink); }
+  .bullets b { font-family: var(--mono); font-weight: 500; color: var(--teal); margin-right: 8px; }
+  .btn-deep { background: var(--deep); color: var(--paper); }
+  .btn-deep:hover { background: var(--deep-2); }
+
+  /* scorecard */
+  .score { background: var(--paper-2); }
+  .sc { width: 100%; border-collapse: collapse; background: var(--paper); }
+  .sc th { text-align: left; font: 500 12px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-2); padding: 14px 16px; border-bottom: 2px solid var(--ink); }
+  .sc td { padding: 15px 16px; border-bottom: 1px solid #d8d2c2; vertical-align: top; }
+  .sc tr:last-child td { border-bottom: 0; }
+  .sc .num { font: 800 18px var(--display); width: 48px; color: var(--ink-2); }
+  .sc td a { font: 13px var(--mono); color: var(--deep); }
+  .sc tr.ok td:first-child { box-shadow: inset 5px 0 0 var(--teal); }
+  .sc tr.miss td:first-child { box-shadow: inset 5px 0 0 var(--coral); }
+  .res { font: 600 13px var(--mono); white-space: nowrap; }
+  .ok .res { color: #0b7a6b; } .miss .res { color: #c43d22; }
+  .res i { display: block; font: 400 12px var(--mono); color: var(--ink-2); font-style: normal; }
+  .sc-wrap { overflow-x: auto; border: 2px solid var(--ink); border-radius: 4px; }
+
+  /* pipeline */
+  .pipe { position: relative; display: grid; grid-template-columns: repeat(4, 1fr); margin: 12px 0 0; padding: 0; list-style: none; }
+  .pipe::before { content: ""; position: absolute; left: 0; right: 0; top: 13px; height: 4px; background: linear-gradient(90deg, var(--teal) 0 50%, var(--coral) 50% 100%); border-radius: 2px; }
+  .pipe li { position: relative; padding: 44px 24px 0 0; }
+  .pipe li::before { content: ""; position: absolute; top: 3px; left: 0; width: 24px; height: 24px; border-radius: 50%; background: var(--paper); border: 4px solid var(--teal); }
+  .pipe li:nth-child(n+3)::before { border-color: var(--coral); }
+  .pipe h3 { font: 800 21px var(--display); font-stretch: 112%; margin: 0 0 6px; }
+  .pipe p { margin: 0; font-size: 15px; color: var(--ink-2); }
+  .pipe .layer { display: block; font: 500 12px var(--mono); color: var(--teal); margin-bottom: 6px; letter-spacing: .06em; }
+  .pipe li:nth-child(n+3) .layer { color: #c43d22; }
+  .scale { display: flex; justify-content: space-between; margin-top: 30px; font: 500 13px var(--mono); color: var(--ink-2); }
+  .scale span:last-child { color: #c43d22; }
+
+  /* problems: editorial rows */
+  .problems { background: var(--deep); color: var(--paper); }
+  .problems .intro { color: #b6c9c5; }
+  .prob { display: grid; grid-template-columns: 120px 1fr 1fr; gap: 36px; padding: 40px 0; border-top: 1.5px solid #2a5a62; }
+  .prob:last-child { border-bottom: 1.5px solid #2a5a62; }
+  .prob .n { font: 900 76px/0.85 var(--display); font-stretch: 125%; color: var(--lime); }
+  .prob h3 { font: 800 26px/1.15 var(--display); font-stretch: 112%; margin: 0 0 10px; }
+  .prob p { margin: 0; color: #c6d6d2; font-size: 16px; }
+  .prob .fix { border-left: 3px solid var(--coral); padding-left: 22px; }
+  .prob .fix b { display: block; font: 500 12px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--coral); margin-bottom: 8px; }
+  .prob code { font: 14px var(--mono); color: var(--lime); }
+
+  /* run it */
+  .run { display: grid; grid-template-columns: 1fr 1.3fr; gap: 56px; align-items: start; }
+  .code { background: var(--ink); color: #dfe9e6; padding: 24px; border-radius: 4px; font: 14px/1.9 var(--mono); overflow-x: auto; white-space: pre; box-shadow: 10px 10px 0 var(--lime); }
+  .code .p { color: var(--coral); user-select: none; }
+
+  footer { border-top: 2px solid var(--ink); padding: 32px 0 48px; font-size: 15px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+  footer a { color: var(--deep); font-weight: 600; }
+
+  @media (max-width: 900px) {
+    .hero-grid, .split, .run { grid-template-columns: 1fr; gap: 44px; }
+    .prob { grid-template-columns: 1fr; gap: 14px; }
+    .prob .n { font-size: 56px; }
+    .pipe { grid-template-columns: 1fr; }
+    .pipe::before { left: 10px; right: auto; top: 0; bottom: 0; width: 4px; height: auto; background: linear-gradient(180deg, var(--teal) 0 50%, var(--coral) 50% 100%); }
+    .pipe li { padding: 0 0 30px 48px; }
+    .pipe li::before { top: 2px; }
+    .scale { display: none; }
+    section { padding: 72px 0; }
+    .term pre { min-height: 0; }
+  }
+  @media (max-width: 520px) {
+    .wrap { padding: 0 18px; }
+    nav .links a:not(:last-child) { display: none; }
+    .term { box-shadow: 8px 8px 0 var(--coral); }
+    .shot .tag { left: 8px; }
+    .shot img { height: 300px; object-fit: cover; object-position: left top; }
+    .sc th:nth-child(2), .sc td:nth-child(2) { display: none; }
+    .sc th, .sc td { padding: 12px 10px; font-size: 15px; }
+    .sc th { font-size: 11px; }
+    .sc .num { width: 36px; font-size: 15px; }
+    .res { white-space: normal; }
   }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <nav>
-    <div class="brand">ARGUS<span>.</span></div>
-    <a class="gh" href="{{GITHUB}}">GitHub →</a>
-  </nav>
 
-  <header class="hero">
-    <h1>An AI agent that tests your web app like a human tester.</h1>
-    <p class="lead">Point Argus at a URL. It crawls every page, fills every form, clicks every button,
-      checks the screen with a vision model, and writes a QA report with evidence. Below is a real run
-      against DemoShop, a live site with 11 bugs planted on purpose.</p>
-    <div class="ctas">
-      <a class="btn primary" href="report.html">Open the full audit report</a>
-      <a class="btn" href="{{DEMO_URL}}" target="_blank" rel="noopener">Visit DemoShop (the buggy site)</a>
-      <a class="btn" href="{{GITHUB}}">Source code</a>
+<header class="hero">
+  <div class="wrap">
+    <nav>
+      <a class="logo" href="#">ARGUS<b>.</b></a>
+      <div class="links"><a href="report.html">Report</a><a href="{{DEMO_URL}}">DemoShop</a><a href="{{GITHUB}}">GitHub</a></div>
+    </nav>
+    <div class="hero-grid">
+      <div>
+        <p class="kicker">Autonomous QA agent</p>
+        <h1>It tests your web app the way <em>a person would.</em></h1>
+        <p class="lead">Give Argus a URL. It crawls every page, fills every form, clicks every button,
+          and writes up what broke with the evidence attached. On the right is a real run against
+          DemoShop, a live store with 11 bugs planted on purpose.</p>
+        <div class="ctas">
+          <a class="btn btn-lime" href="report.html">Read the audit report</a>
+          <a class="btn btn-line" href="{{DEMO_URL}}" target="_blank" rel="noopener">Break DemoShop yourself</a>
+        </div>
+      </div>
+      <div class="term">
+        <div class="term-bar"><span>$ argus --url {{DEMO_URL}} --login</span><button id="replay" type="button">Replay</button></div>
+        <pre id="out" aria-live="polite"></pre>
+      </div>
     </div>
-    <div class="stats">
-      <div class="stat"><b>{{CAUGHT}} / {{TOTAL}}</b><span>planted bugs caught</span></div>
-      <div class="stat"><b>{{CONTROL_FP}}</b><span>false alarms on the clean page</span></div>
-      <div class="stat"><b>{{FINDINGS}}</b><span>findings with evidence</span></div>
-      <div class="stat"><b>$0.00</b><span>model cost for this run</span></div>
-    </div>
-  </header>
+  </div>
+</header>
 
-  <section>
-    <h2>Watch the run</h2>
-    <p class="sub">The exact terminal output of the audit behind this page, replayed. The full report it produced is one click away.</p>
-    <div class="term">
-      <div class="term-bar"><span>$ python -m argus.main --url {{DEMO_URL}} --login …/login</span><button id="replay" type="button">Replay</button></div>
-      <pre id="out" aria-live="polite"></pre>
-    </div>
-  </section>
+<div class="verdict">
+  <div class="wrap">
+    <p>Caught <s>{{CAUGHT}} of {{TOTAL}}</s> planted bugs, raised zero false alarms, and spent $0.00 on models.</p>
+    <small>{{FINDINGS}} findings from one unattended run, each with a screenshot and the layer that caught it.</small>
+  </div>
+</div>
 
-  <section>
-    <h2>Scorecard against the planted bugs</h2>
-    <p class="sub">DemoShop's bugs are listed in <a href="{{GITHUB}}/blob/main/demo_app/BUGS.md">BUGS.md</a>.
-      Every change to Argus is scored on what it catches and on staying silent on the clean
-      <a href="{{DEMO_URL}}/blog" target="_blank" rel="noopener">/blog</a> page. Click any page to see the bug yourself.</p>
-    <div class="table-wrap">
-      <table>
+<section>
+  <div class="wrap split">
+    <div>
+      <h2>The report a QA engineer would hand you.</h2>
+      <p class="intro" style="margin-bottom:0">Every finding is tied to the page it happened on, a screenshot, a severity, and the check that caught it. Nothing is hidden: claims the verifier rejects stay in, marked as rejected.</p>
+      <ul class="bullets">
+        <li><b>high</b>Subscribe form returns HTTP 500</li>
+        <li><b>high</b>Uncaught JavaScript error on /about</li>
+        <li><b>med</b>"Meet the team" button does nothing when clicked</li>
+      </ul>
+      <a class="btn btn-deep" href="report.html">Open the full report</a>
+    </div>
+    <a class="shot" href="report.html" aria-label="Open the full audit report">
+      <span class="tag">real output</span>
+      <img src="report-preview.jpg" alt="The Argus audit report for DemoShop: pages crawled, verified findings, model spend and findings by type" width="1400" height="1158" loading="lazy">
+    </a>
+  </div>
+</section>
+
+<section class="score">
+  <div class="wrap">
+    <h2>Graded against an answer key.</h2>
+    <p class="intro">DemoShop's bugs are written down in <a href="{{GITHUB}}/blob/main/demo_app/BUGS.md">BUGS.md</a>, and
+      <a href="{{DEMO_URL}}/blog" target="_blank" rel="noopener">/blog</a> is a clean control page where any finding counts as a false alarm.
+      Every change to Argus is scored this way. Open a page to see the bug for yourself.</p>
+    <div class="sc-wrap">
+      <table class="sc">
         <thead><tr><th>#</th><th>Page</th><th>Planted bug</th><th>Result</th></tr></thead>
         <tbody>
 {{SCORE_ROWS}}
         </tbody>
       </table>
     </div>
-  </section>
+  </div>
+</section>
 
-  <section>
-    <h2>How it works</h2>
-    <p class="sub">A LangGraph state machine. Cheap, deterministic checks run first; the vision model is only used for what code cannot see.</p>
-    <div class="steps">
-      <div class="step"><b>Explore</b><p>Playwright crawls the site page by page, logging in first when asked.</p></div>
-      <div class="step"><b>Check</b><p>DOM checks for broken links, failed requests, JS errors and accessibility. SSIM diffs catch visual drift.</p></div>
-      <div class="step"><b>Use it</b><p>Fills and submits every form and clicks every button, then judges what happened.</p></div>
-      <div class="step"><b>Verify & report</b><p>A skeptic agent re-checks every visual claim, then the report and GitHub issues are written.</p></div>
+<section>
+  <div class="wrap">
+    <h2>Cheap checks first. The model last.</h2>
+    <p class="intro">A LangGraph state machine. Code catches the mechanical bugs for free; the vision model is only asked about what code cannot see, so runs stay fast and cost nothing.</p>
+    <ol class="pipe">
+      <li><span class="layer">PLAYWRIGHT</span><h3>Explore</h3><p>Crawls the site page by page, logging in first when asked.</p></li>
+      <li><span class="layer">DOM · OPENCV</span><h3>Inspect</h3><p>Broken links, failed requests, JS errors, accessibility, and pixel drift against a baseline.</p></li>
+      <li><span class="layer">FLOWS · LLM</span><h3>Use it</h3><p>Submits every form and clicks every button, then judges what actually happened.</p></li>
+      <li><span class="layer">VISION · SKEPTIC</span><h3>Verify</h3><p>A second agent tries to disprove every visual claim before it reaches the report.</p></li>
+    </ol>
+    <div class="scale"><span>free, deterministic</span><span>model calls, only when needed</span></div>
+  </div>
+</section>
+
+<section class="problems">
+  <div class="wrap">
+    <h2>What went wrong while building it.</h2>
+    <p class="intro">Three problems that shaped the design, and what I did about each.</p>
+    <div class="prob">
+      <div class="n">01</div>
+      <div><h3>The model saw bugs that weren't there.</h3><p>The vision model reported an "unreadable nav bar" on a page with nothing wrong with it.</p></div>
+      <div class="fix"><b>Fix</b><p>A skeptic agent re-examines every visual claim and is told to look for reasons it's wrong. On that page it rejected the claim with the right reasoning.</p></div>
     </div>
-  </section>
-
-  <section>
-    <h2>Problems I hit, and how I solved them</h2>
-    <div class="cards">
-      <div class="card"><h3>The model invented bugs</h3>
-        <p><span class="k">Problem</span>The vision model reported an "unreadable nav" on a page with nothing wrong.</p>
-        <p><span class="k">Fix</span>A second, skeptical agent re-examines every visual claim and is biased toward rejecting it. Rejected claims stay in the report for transparency.</p></div>
-      <div class="card"><h3>Free tiers kept stalling</h3>
-        <p><span class="k">Problem</span>Free-tier rate limits froze audits for minutes at a time.</p>
-        <p><span class="k">Fix</span>Fast failover across providers (Gemini, then Groq) instead of waiting, plus perceptual-hash dedup so no screen is judged twice. Cost stays at $0.</p></div>
-      <div class="card"><h3>Long runs died midway</h3>
-        <p><span class="k">Problem</span>A crash halfway through a big site meant starting over.</p>
-        <p><span class="k">Fix</span>Every graph step checkpoints to SQLite. <code>--resume</code> continues from the exact page the run died on.</p></div>
+    <div class="prob">
+      <div class="n">02</div>
+      <div><h3>Free tiers kept freezing runs.</h3><p>Rate limits stalled audits for minutes at a time, and paying per call wasn't an option.</p></div>
+      <div class="fix"><b>Fix</b><p>Fast failover from Gemini to Groq instead of waiting out a limit, plus perceptual hashing so the same screen is never judged twice.</p></div>
     </div>
-  </section>
+    <div class="prob">
+      <div class="n">03</div>
+      <div><h3>A crash meant starting over.</h3><p>Long audits on big sites died halfway and lost all their progress.</p></div>
+      <div class="fix"><b>Fix</b><p>Every step checkpoints to SQLite. <code>--resume &lt;run&gt;</code> picks up on the exact page the run died on.</p></div>
+    </div>
+  </div>
+</section>
 
-  <section>
-    <h2>Run it yourself</h2>
-    <p class="sub">Works with no API keys (DOM and flow checks). Add a free Gemini key to turn on the vision audit.</p>
-    <code class="block">git clone {{GITHUB}} && cd argus
-pip install -r requirements.txt && playwright install chromium
-python -m argus.main --url {{DEMO_URL}}</code>
-  </section>
+<section>
+  <div class="wrap run">
+    <div>
+      <h2>Run it on your own app.</h2>
+      <p class="intro" style="margin:0">It works with no API keys at all, running the code checks and form tests. Add a free Gemini key to turn on the visual audit.</p>
+    </div>
+    <div class="code"><span class="p">$ </span>git clone {{GITHUB}}
+<span class="p">$ </span>pip install -r requirements.txt
+<span class="p">$ </span>playwright install chromium
+<span class="p">$ </span>python -m argus.main --url {{DEMO_URL}}</div>
+  </div>
+</section>
 
-  <footer>Built by <a href="https://amarwaqar.vercel.app">Amar Waqar</a> · Python, LangGraph, Playwright, OpenCV, Gemini</footer>
+<div class="wrap">
+  <footer>
+    <span>Built by <a href="https://amarwaqar.vercel.app">Amar Waqar</a></span>
+    <span class="mono" style="font-size:13px;color:var(--ink-2)">Python · LangGraph · Playwright · OpenCV · Gemini</span>
+  </footer>
 </div>
 
 <script>
   const LOG = {{LOG_JSON}};
   const out = document.getElementById("out");
   let timer = null;
-  function cls(line) {
-    if (line.includes("[flow]")) return "c-flow";
-    if (/findings|crawled/.test(line)) return "c-ok";
-    if (/^\s+\[/.test(line) || line.includes("logged in")) return "";
-    return "c-dim";
-  }
+  const cls = l => l.includes("[flow]") ? "flow" : /findings/.test(l) ? "done" : /^\s+\[|logged in/.test(l) ? "" : "dim";
   function play() {
     clearTimeout(timer);
     out.textContent = "";
     let i = 0;
-    const step = () => {
+    (function step() {
       if (i >= LOG.length) return;
-      const span = document.createElement("span");
-      span.className = cls(LOG[i]);
-      span.textContent = LOG[i] + "\n";
-      out.appendChild(span);
+      const s = document.createElement("span");
+      s.className = cls(LOG[i]);
+      s.textContent = LOG[i] + "\n";
+      out.appendChild(s);
       i++;
-      timer = setTimeout(step, i === LOG.length - 1 ? 900 : 420);
-    };
-    step();
+      timer = setTimeout(step, i === LOG.length - 1 ? 1000 : 380);
+    })();
   }
   document.getElementById("replay").addEventListener("click", play);
-  if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    out.textContent = LOG.join("\n");
-  } else {
-    new IntersectionObserver((e, o) => { if (e[0].isIntersecting) { play(); o.disconnect(); } }).observe(out);
-  }
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) out.textContent = LOG.join("\n");
+  else play();
 </script>
 </body>
 </html>

@@ -62,11 +62,16 @@ def main(run_dir: Path, log_path: Path, demo_url: str):
     log = [re.sub(r"\s+", " ", ln) if not ln.startswith("  ") else "  " + re.sub(r"\s+", " ", ln.strip())
            for ln in log if not ln.startswith("Report:") and "session saved" not in ln]
 
+    def result(bid, hit):
+        if hit:
+            return f'<span class="res">Caught<i>{escape(LAYER.get(hit["source"], hit["source"]))}</i></span>'
+        why = "<i>needs the vision model</i>" if bid in (4, 5) else ""
+        return f'<span class="res">Missed{why}</span>'
+
     score_rows = "\n".join(
-        f"""<tr class="{'ok' if hit else 'miss'}"><td class="num">{bid}</td>
+        f"""<tr class="{'ok' if hit else 'miss'}"><td class="num">{bid:02d}</td>
 <td><a href="{demo_url}{page}" target="_blank" rel="noopener">{escape(page)}</a></td>
-<td>{escape(bug)}</td>
-<td>{('<span class="pill ok">Caught</span> <span class="muted">' + escape(LAYER.get(hit['source'], hit['source'])) + '</span>') if hit else '<span class="pill miss">Missed</span> <span class="muted">needs vision model</span>' if bid in (4, 5) else '<span class="pill miss">Missed</span>'}</td></tr>"""
+<td>{escape(bug)}</td><td>{result(bid, hit)}</td></tr>"""
         for bid, page, bug, hit in rows)
 
     html = (ROOT / "scripts" / "site_template.html").read_text()
@@ -82,6 +87,7 @@ def main(run_dir: Path, log_path: Path, demo_url: str):
     out.mkdir(exist_ok=True)
     (out / "index.html").write_text(html, encoding="utf-8")
     shutil.copy(run_dir / "report.html", out / "report.html")
+    shutil.copy(ROOT / "scripts" / "report-preview.jpg", out / "report-preview.jpg")
     print(f"site/ built: {caught}/{len(BUGS)} planted bugs caught, {control_fp} false positives on /blog")
 
 
