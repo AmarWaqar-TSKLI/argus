@@ -17,6 +17,7 @@ from pathlib import Path
 
 from PIL import Image
 
+from argus import config
 from argus.state import ArgusState, Finding
 
 SEVERITY_ORDER = {"high": 0, "medium": 1, "low": 2}
@@ -217,7 +218,7 @@ def _render_html(state: ArgusState, findings: list[Finding]) -> str:
         <div class="sub">perceptual-hash dedup + DOM-first triage</div></div>
       <div class="tile"><div class="value">$0.00</div>
         <div class="label">Model spend</div>
-        <div class="sub">Gemini Flash free tier</div></div>
+        <div class="sub">{"no model calls (vision off)" if not config.has_vlm() else "Gemini Flash free tier"}</div></div>
     </div>"""
 
     bars = "".join(
@@ -260,7 +261,7 @@ def _render_html(state: ArgusState, findings: list[Finding]) -> str:
 <header>
   <div class="eyebrow">Argus · autonomous QA</div>
   <h1>Audit of <span class="target">{escape(state["base_url"])}</span></h1>
-  <div class="meta">{stamp} · DOM + vision audit, adversarially verified · {len(findings)} findings across {len(state["pages"])} pages</div>
+  <div class="meta">{stamp} · {"DOM + flow audit, vision off" if not config.has_vlm() else "DOM + vision audit, adversarially verified"} · {len(findings)} findings across {len(state["pages"])} pages</div>
 </header>
 {tiles}
 <section><h2>Findings by type</h2><div class="bars">{bars}</div></section>

@@ -3,6 +3,7 @@
 Kept out of graph state on purpose: state should stay serializable so
 LangGraph checkpointing keeps working when we enable it in a later phase.
 """
+import os
 from argus import config  # noqa: F401  (sets PLAYWRIGHT_BROWSERS_PATH before playwright loads)
 
 from pathlib import Path
@@ -35,7 +36,8 @@ def get_page() -> Page:
     global _pw, _browser, _page
     if _page is None:
         _pw = sync_playwright().start()
-        _browser = _pw.chromium.launch(headless=True)
+        _browser = _pw.chromium.launch(
+            headless=True, executable_path=os.environ.get("ARGUS_CHROMIUM_PATH") or None)
         context = _browser.new_context(
             viewport={"width": 1280, "height": 800},
             storage_state=_storage_state)

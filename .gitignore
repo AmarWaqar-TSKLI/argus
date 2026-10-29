@@ -5,3 +5,6 @@ __pycache__/
 runs/
 baseline/
 .pytest_cache/
+site/
+deploy/site/index.html
+deploy/site/report.html

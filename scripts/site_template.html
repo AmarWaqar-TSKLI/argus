@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Argus — autonomous AI QA agent</title>
+<meta name="description" content="An AI agent that tests web apps like a human tester and reports the bugs it finds.">
+<style>
+  :root {
+    --bg: #ffffff; --soft: #f5f7f6; --ink: #141a19; --ink-2: #4b5755; --muted: #7a8784;
+    --line: #e3e8e6; --accent: #0e7c6e; --accent-soft: #e3f1ee; --bad: #b42318; --bad-soft: #fdecea;
+    --term: #0f1514; --term-ink: #d6e2df;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0d1211; --soft: #141b1a; --ink: #e8efed; --ink-2: #a9b8b4; --muted: #7d8c88;
+      --line: #24302e; --accent: #3dd1bc; --accent-soft: #113430; --bad: #f59a92; --bad-soft: #3a1a17; --term: #070b0a; }
+  }
+  * { box-sizing: border-box; }
+  html { color-scheme: light dark; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  a { color: var(--accent); }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 20px; }
+  nav { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; }
+  .brand { font-weight: 700; letter-spacing: .02em; }
+  .brand span { color: var(--accent); }
+  nav a.gh { color: var(--ink-2); text-decoration: none; font-size: 14px; }
+  .hero { padding: 48px 0 32px; }
+  h1 { font-size: clamp(30px, 5vw, 46px); line-height: 1.12; margin: 0 0 16px; letter-spacing: -.02em; }
+  .lead { font-size: 18px; color: var(--ink-2); max-width: 640px; margin: 0 0 28px; }
+  .ctas { display: flex; gap: 12px; flex-wrap: wrap; }
+  .btn { display: inline-block; padding: 11px 18px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px; border: 1px solid var(--line); color: var(--ink); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  @media (prefers-color-scheme: dark) { .btn.primary { color: #062420; } }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; margin: 40px 0 0; }
+  .stat { background: var(--bg); padding: 18px 20px; }
+  .stat b { display: block; font-size: 28px; letter-spacing: -.02em; }
+  .stat span { font-size: 13px; color: var(--muted); }
+  section { padding: 56px 0 0; }
+  h2 { font-size: 24px; margin: 0 0 8px; letter-spacing: -.01em; }
+  .sub { color: var(--ink-2); margin: 0 0 24px; max-width: 680px; }
+  .term { background: var(--term); color: var(--term-ink); border-radius: 12px; overflow: hidden; }
+  .term-bar { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-bottom: 1px solid #1f2a28; font: 12px ui-monospace, Menlo, Consolas, monospace; color: #7d8c88; }
+  .term-bar button { background: none; border: 1px solid #2b3a37; color: #d6e2df; border-radius: 6px; padding: 4px 10px; font: inherit; cursor: pointer; }
+  .term pre { margin: 0; padding: 16px; font: 13px/1.7 ui-monospace, Menlo, Consolas, monospace; min-height: 330px; white-space: pre-wrap; word-break: break-all; }
+  .term .c-flow { color: #f0c36b; } .term .c-ok { color: #5fe0c9; } .term .c-dim { color: #7d8c88; }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  td { padding: 11px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  td.num { color: var(--muted); width: 32px; }
+  td a { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; }
+  .pill { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 99px; }
+  .pill.ok { background: var(--accent-soft); color: var(--accent); }
+  .pill.miss { background: var(--bad-soft); color: var(--bad); }
+  .muted { color: var(--muted); font-size: 13px; }
+  .table-wrap { border: 1px solid var(--line); border-radius: 12px; overflow-x: auto; }
+  .table-wrap table tr:last-child td { border-bottom: 0; }
+  .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; counter-reset: s; }
+  .step { border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .step::before { counter-increment: s; content: counter(s); display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+  .step b { display: block; margin-bottom: 4px; }
+  .step p { margin: 0; font-size: 14px; color: var(--ink-2); }
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .card { background: var(--soft); border-radius: 12px; padding: 18px; }
+  .card h3 { font-size: 16px; margin: 0 0 8px; }
+  .card p { margin: 0 0 8px; font-size: 14px; color: var(--ink-2); }
+  .card p:last-child { margin: 0; }
+  .card .k { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); display: block; }
+  code.block { display: block; background: var(--soft); border-radius: 12px; padding: 16px; font: 13px/1.7 ui-monospace, Menlo, Consolas, monospace; white-space: pre; overflow-x: auto; }
+  footer { padding: 56px 0 40px; color: var(--muted); font-size: 14px; }
+  @media (max-width: 760px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .steps, .cards { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <div class="brand">ARGUS<span>.</span></div>
+    <a class="gh" href="{{GITHUB}}">GitHub →</a>
+  </nav>
+
+  <header class="hero">
+    <h1>An AI agent that tests your web app like a human tester.</h1>
+    <p class="lead">Point Argus at a URL. It crawls every page, fills every form, clicks every button,
+      checks the screen with a vision model, and writes a QA report with evidence. Below is a real run
+      against DemoShop, a live site with 11 bugs planted on purpose.</p>
+    <div class="ctas">
+      <a class="btn primary" href="report.html">Open the full audit report</a>
+      <a class="btn" href="{{DEMO_URL}}" target="_blank" rel="noopener">Visit DemoShop (the buggy site)</a>
+      <a class="btn" href="{{GITHUB}}">Source code</a>
+    </div>
+    <div class="stats">
+      <div class="stat"><b>{{CAUGHT}} / {{TOTAL}}</b><span>planted bugs caught</span></div>
+      <div class="stat"><b>{{CONTROL_FP}}</b><span>false alarms on the clean page</span></div>
+      <div class="stat"><b>{{FINDINGS}}</b><span>findings with evidence</span></div>
+      <div class="stat"><b>$0.00</b><span>model cost for this run</span></div>
+    </div>
+  </header>
+
+  <section>
+    <h2>Watch the run</h2>
+    <p class="sub">The exact terminal output of the audit behind this page, replayed. The full report it produced is one click away.</p>
+    <div class="term">
+      <div class="term-bar"><span>$ python -m argus.main --url {{DEMO_URL}} --login …/login</span><button id="replay" type="button">Replay</button></div>
+      <pre id="out" aria-live="polite"></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>Scorecard against the planted bugs</h2>
+    <p class="sub">DemoShop's bugs are listed in <a href="{{GITHUB}}/blob/main/demo_app/BUGS.md">BUGS.md</a>.
+      Every change to Argus is scored on what it catches and on staying silent on the clean
+      <a href="{{DEMO_URL}}/blog" target="_blank" rel="noopener">/blog</a> page. Click any page to see the bug yourself.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Page</th><th>Planted bug</th><th>Result</th></tr></thead>
+        <tbody>
+{{SCORE_ROWS}}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>How it works</h2>
+    <p class="sub">A LangGraph state machine. Cheap, deterministic checks run first; the vision model is only used for what code cannot see.</p>
+    <div class="steps">
+      <div class="step"><b>Explore</b><p>Playwright crawls the site page by page, logging in first when asked.</p></div>
+      <div class="step"><b>Check</b><p>DOM checks for broken links, failed requests, JS errors and accessibility. SSIM diffs catch visual drift.</p></div>
+      <div class="step"><b>Use it</b><p>Fills and submits every form and clicks every button, then judges what happened.</p></div>
+      <div class="step"><b>Verify & report</b><p>A skeptic agent re-checks every visual claim, then the report and GitHub issues are written.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Problems I hit, and how I solved them</h2>
+    <div class="cards">
+      <div class="card"><h3>The model invented bugs</h3>
+        <p><span class="k">Problem</span>The vision model reported an "unreadable nav" on a page with nothing wrong.</p>
+        <p><span class="k">Fix</span>A second, skeptical agent re-examines every visual claim and is biased toward rejecting it. Rejected claims stay in the report for transparency.</p></div>
+      <div class="card"><h3>Free tiers kept stalling</h3>
+        <p><span class="k">Problem</span>Free-tier rate limits froze audits for minutes at a time.</p>
+        <p><span class="k">Fix</span>Fast failover across providers (Gemini, then Groq) instead of waiting, plus perceptual-hash dedup so no screen is judged twice. Cost stays at $0.</p></div>
+      <div class="card"><h3>Long runs died midway</h3>
+        <p><span class="k">Problem</span>A crash halfway through a big site meant starting over.</p>
+        <p><span class="k">Fix</span>Every graph step checkpoints to SQLite. <code>--resume</code> continues from the exact page the run died on.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Run it yourself</h2>
+    <p class="sub">Works with no API keys (DOM and flow checks). Add a free Gemini key to turn on the vision audit.</p>
+    <code class="block">git clone {{GITHUB}} && cd argus
+pip install -r requirements.txt && playwright install chromium
+python -m argus.main --url {{DEMO_URL}}</code>
+  </section>
+
+  <footer>Built by <a href="https://amarwaqar.vercel.app">Amar Waqar</a> · Python, LangGraph, Playwright, OpenCV, Gemini</footer>
+</div>
+
+<script>
+  const LOG = {{LOG_JSON}};
+  const out = document.getElementById("out");
+  let timer = null;
+  function cls(line) {
+    if (line.includes("[flow]")) return "c-flow";
+    if (/findings|crawled/.test(line)) return "c-ok";
+    if (/^\s+\[/.test(line) || line.includes("logged in")) return "";
+    return "c-dim";
+  }
+  function play() {
+    clearTimeout(timer);
+    out.textContent = "";
+    let i = 0;
+    const step = () => {
+      if (i >= LOG.length) return;
+      const span = document.createElement("span");
+      span.className = cls(LOG[i]);
+      span.textContent = LOG[i] + "\n";
+      out.appendChild(span);
+      i++;
+      timer = setTimeout(step, i === LOG.length - 1 ? 900 : 420);
+    };
+    step();
+  }
+  document.getElementById("replay").addEventListener("click", play);
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    out.textContent = LOG.join("\n");
+  } else {
+    new IntersectionObserver((e, o) => { if (e[0].isIntersecting) { play(); o.disconnect(); } }).observe(out);
+  }
+</script>
+</body>
+</html>
